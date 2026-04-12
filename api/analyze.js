@@ -11,13 +11,36 @@ export default async function handler(req, res) {
   const { title, region, tag } = req.body;
   if (!title) return res.status(400).json({ error: 'Missing event title' });
 
-  const prompt = `You are a senior financial market analyst. Analyze this news event and return ONLY a raw JSON object. No markdown, no backticks, no text before or after. Start with { and end with }.
+  const prompt = `You are a senior financial market analyst with 20 years experience. Analyze this news event and return ONLY a raw JSON object. No markdown, no backticks, no text before or after. Start with { and end with }.
 
 Event: "${title}" | Region: ${region || 'Global'} | Category: ${tag || 'general'}
 
-{"summary":"2-3 sentences on why this moves markets","goods":[{"name":"","direction":"up|down|neutral","magnitude":"strong|moderate|slight","reason":"max 10 words"}],"stocks":[{"name":"","ticker":"","direction":"up|down|neutral","magnitude":"strong|moderate|slight","reason":"max 10 words"}],"bonds":[{"name":"","direction":"up|down|neutral","magnitude":"strong|moderate|slight","reason":"max 10 words"}],"currencies":[{"pair":"XXX/YYY","direction":"up|down|neutral","effect":"max 8 words"}],"supplychain":"2-3 sentences on supply chain disruption"}
+Return this exact JSON:
+{
+  "summary": "2-3 sentences on why this moves markets and the key mechanism",
+  "confidence": 85,
+  "confidence_reason": "one sentence explaining confidence level",
+  "goods": [{"name":"","direction":"up|down|neutral","magnitude":"strong|moderate|slight","reason":"max 10 words","price_impact":"e.g. +8-12%"}],
+  "stocks": [{"name":"","ticker":"","direction":"up|down|neutral","magnitude":"strong|moderate|slight","reason":"max 10 words","price_impact":"e.g. -3-5%"}],
+  "bonds": [{"name":"","direction":"up|down|neutral","magnitude":"strong|moderate|slight","reason":"max 10 words","price_impact":"e.g. +1-2%"}],
+  "currencies": [{"pair":"XXX/YYY","direction":"up|down|neutral","effect":"max 8 words","price_impact":"e.g. +2-3%"}],
+  "supplychain": "2-3 sentences on supply chain disruption and which industries feel it first",
+  "similar_events": [
+    {
+      "title": "name of a real past event that is similar",
+      "year": 2022,
+      "what_happened": "one sentence on what markets did",
+      "outcome": "up|down|mixed"
+    }
+  ]
+}
 
-4-5 goods, 4-5 stocks, 3 bonds, 4 currencies. Real company names and tickers.`;
+Rules:
+- confidence is a number 0-100 based on how certain the market impact is
+- include 4-5 goods, 4-5 stocks, 3 bonds, 4 currencies
+- include 3 similar past real events with accurate historical context
+- price_impact should be a realistic estimated percentage range
+- use real company names and tickers`;
 
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -28,7 +51,7 @@ Event: "${title}" | Region: ${region || 'Global'} | Category: ${tag || 'general'
       },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
-        max_tokens: 1200,
+        max_tokens: 1800,
         temperature: 0.3,
         messages: [
           { role: 'system', content: 'You are a senior financial market analyst. Always respond with raw JSON only, no markdown, no explanation.' },
